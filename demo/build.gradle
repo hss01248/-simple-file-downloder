@@ -49,6 +49,7 @@ dependencies {
     implementation project(':okhttp-no-service')
     // for testing
     implementation 'com.squareup.okio:okio:1.14.0'
+     api 'com.github.hss01248.utilcodeEnhance:openuri:1.6.3'
 }
 configurations {
     all*.exclude group: 'com.liulishuo.filedownloader', module: 'library'

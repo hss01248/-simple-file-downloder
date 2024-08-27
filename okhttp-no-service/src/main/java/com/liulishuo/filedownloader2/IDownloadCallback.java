@@ -17,10 +17,17 @@
 package com.liulishuo.filedownloader2;
 
 /**
- * @Despciption implementation("io.github.ydxlt:okdownloader:1.0.0")
+ * @Despciption todo
  * @Author hss
- * @Date 8/27/24 2:46 PM
+ * @Date 8/27/24 3:32 PM
  * @Version 1.0
  */
-public class DownloadUtil {
+public interface IDownloadCallback{
+
+    void onSuccess(String url,String path);
+
+    void onFailed(String url,String path,String code,String msg,Throwable e);
+
+    default  void onProgress(String url,String path,long total,long alreadyReceived){}
 }
+
