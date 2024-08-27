@@ -18,8 +18,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -36,6 +39,13 @@ import okhttp3.Response;
 public class OkhttpDownloadUtil {
 
     volatile static  OkHttpClient client;
+
+    volatile static Set<String> runningTask = new CopyOnWriteArraySet<>();
+
+    public static  void pauseOrStop(String url){
+        runningTask.remove(url);
+    }
+
 
   public static void downLoad(String url, String filePath,
                           boolean forceRedownload,
@@ -82,6 +92,7 @@ public class OkhttpDownloadUtil {
             callback.onFailed(url,filePath,"","file path is dir, please rename it or your file path",null);
             return;
         }
+        runningTask.add(url);
         boolean isRangeRequest = false;
         if(file.exists() && file.isFile() && file.length() >0){
             if(forceRedownload){
@@ -124,6 +135,7 @@ public class OkhttpDownloadUtil {
                     if(file.length() == fileSizeAlreadyKnown){
                         //已经是下载成功的
                         LogUtils.d("file already exist and same bytes as header", filePath,url);
+                        runningTask.remove(url);
                         callback.onSuccess(url,filePath);
                         return;
                     }else {
@@ -145,11 +157,13 @@ public class OkhttpDownloadUtil {
             Response response = client.newCall(request).execute();
             if(!response.isSuccessful()){
                 LogUtils.w("download failed0",url,response.code(),response.message());
+                runningTask.remove(url);
                 callback.onFailed(url,filePath,response.code()+"","download failed: "+response.message(),null);
                 return;
             }
             if(response.body() == null ){
                 LogUtils.w("download failed: request success but response body is empty!",url,response.code(),response.message());
+                runningTask.remove(url);
                 callback.onFailed(url,filePath,"","request success but response body is empty! ",null);
                 return;
             }
@@ -174,35 +188,42 @@ public class OkhttpDownloadUtil {
             int all = inputStream.available();
             Long finalFileSizeAlreadyKnown1 = fileSizeAlreadyKnown;
             long len = file.length();
-            boolean success = writeFileFromIS(file, inputStream, append, new IDownloadCallback() {
-                @Override
-                public void onSuccess(String url, String path) {
+            try{
+                boolean success = writeFileFromIS(url,file, inputStream, append, new IDownloadCallback() {
+                    @Override
+                    public void onSuccess(String url, String path) {
 
+                    }
+
+                    @Override
+                    public void onFailed(String url, String path, String code, String msg, Throwable e) {
+
+                    }
+
+                    @Override
+                    public void onProgress(String url,String path,long total,long alreadyReceived) {
+                        Log.v("download-progress",((alreadyReceived+len)*100.0/finalFileSizeAlreadyKnown1)+"%, "
+                                +url+", "+ ConvertUtils.byte2FitMemorySize(alreadyReceived+len,1));
+                        callback.onProgress(url, filePath, finalFileSizeAlreadyKnown1, alreadyReceived+len);
+
+                    }
+                });
+                runningTask.remove(url);
+                if(success){
+                    callback.onSuccess(url,filePath);
+                    LogUtils.d("download success",url,response.code(),response.message(),filePath,
+                            "file.length:"+file.length(),"content-length:"+finalFileSizeAlreadyKnown1);
+                }else {
+                    LogUtils.w("download failed4",url,response.code(),response.message());
+                    callback.onFailed(url,filePath,"","download file write failed: ",null);
                 }
-
-                @Override
-                public void onFailed(String url, String path, String code, String msg, Throwable e) {
-
-                }
-
-                @Override
-                public void onProgress(String url,String path,long total,long alreadyReceived) {
-                    Log.v("download-progress",((alreadyReceived+len)*100.0/finalFileSizeAlreadyKnown1)+"%, "
-                            +url+", "+ ConvertUtils.byte2FitMemorySize(alreadyReceived+len,1));
-                    callback.onProgress(url, filePath, finalFileSizeAlreadyKnown1, alreadyReceived+len);
-
-                }
-            });
-            if(success){
-                callback.onSuccess(url,filePath);
-                LogUtils.d("download success",url,response.code(),response.message(),filePath,
-                        "file.length:"+file.length(),"content-length:"+finalFileSizeAlreadyKnown1);
-            }else {
-                LogUtils.w("download failed4",url,response.code(),response.message());
-                callback.onFailed(url,filePath,"","download file write failed: ",null);
+            }catch (InterruptedException e){
+                LogUtils.w(url,e);
             }
+
         }catch (Throwable throwable){
             LogUtils.w("download failed1",url,throwable);
+            runningTask.remove(url);
             callback.onFailed(url,filePath,"","download file  failed: "+ throwable.getMessage(),throwable);
         }
     }
@@ -217,10 +238,10 @@ public class OkhttpDownloadUtil {
     }
 
     private static int sBufferSize = 524288;
-    public static boolean writeFileFromIS(final File file,
+    public static boolean writeFileFromIS(String url,final File file,
                                           final InputStream is,
                                           final boolean append,
-                                          final IDownloadCallback listener) {
+                                          final IDownloadCallback listener) throws InterruptedException{
         if (is == null || !FileUtils.createOrExistsFile(file)) {
             Log.e("FileIOUtils", "create file <" + file + "> failed.");
             return false;
@@ -243,6 +264,10 @@ public class OkhttpDownloadUtil {
                     os.write(data, 0, len);
                     curSize += len;
                     listener.onProgress("","",0,curSize);
+                    if(!runningTask.contains(url)){
+                        //中断读取
+                        throw  new InterruptedException("paused");
+                    }
                 }
             }
             return true;

@@ -119,7 +119,9 @@ public class SingleTaskTestActivity extends AppCompatActivity {
         pauseBtn1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                FileDownloader.getImpl().pause(downloadId1);
+                //FileDownloader.getImpl().pause(downloadId1);
+                BaseDownloadTask downloadTask = createDownloadTask(1);
+                OkhttpDownloadUtil.pauseOrStop(downloadTask.getUrl());
             }
         });
 
