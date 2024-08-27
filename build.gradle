@@ -1,25 +1,19 @@
 buildscript {
+    apply from: 'https://raw.githubusercontent.com/hss01248/flipperUtil/gradle7_5/remote3.gradle?a=7'
     repositories {
-        jcenter()
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.3.1'
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
+        classpath 'com.android.tools.build:gradle:7.4.2'
     }
 }
 
 allprojects {
     repositories {
-        jcenter()
         google()
     }
 }
 
-subprojects {
-    group = GROUP
-    version = VERSION_NAME
-}
 
 task clean(type: Delete) {
     delete rootProject.buildDir

@@ -18,11 +18,13 @@ package com.liulishuo.filedownloader.demo.performance;
 
 import android.os.Bundle;
 import android.os.Parcel;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.AppCompatSeekBar;
+
 import android.view.View;
 import android.widget.ScrollView;
 import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatSeekBar;
 
 import com.liulishuo.filedownloader.demo.R;
 import com.liulishuo.filedownloader.util.FileDownloadUtils;
