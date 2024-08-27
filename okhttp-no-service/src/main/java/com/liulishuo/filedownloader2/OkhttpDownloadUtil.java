@@ -49,6 +49,7 @@ public class OkhttpDownloadUtil {
 
   public static void downLoad(String url, String filePath,
                           boolean forceRedownload,
+                          boolean notAcceptRanges,
                           boolean wifiRequire,
                   @Nullable Map<String,String> headers,
                           @Nullable Long fileSizeAlreadyKnown,
@@ -56,7 +57,7 @@ public class OkhttpDownloadUtil {
         ThreadUtils.executeByIo(new ThreadUtils.SimpleTask<Object>() {
             @Override
             public Object doInBackground() throws Throwable {
-                downLoadInThread(url, filePath, forceRedownload, wifiRequire, headers, fileSizeAlreadyKnown, callback);
+                downLoadInThread(url, filePath, forceRedownload,notAcceptRanges, wifiRequire, headers, fileSizeAlreadyKnown, callback);
                 return 1;
             }
 
@@ -70,6 +71,7 @@ public class OkhttpDownloadUtil {
 
    private static void downLoadInThread(String url, String filePath,
                   boolean forceRedownload,
+                   boolean notAcceptRanges,
                   boolean wifiRequire,
                  Map<String,String> headers,
                  @Nullable Long fileSizeAlreadyKnown,
@@ -126,12 +128,13 @@ public class OkhttpDownloadUtil {
                     }catch (Throwable throwable){
                         LogUtils.w("head() request failed",url,throwable);
                     }
-
                 }
+                LogUtils.d("file.length:"+file.length(), "content-length:" +fileSizeAlreadyKnown,
+                        "服务端是否支持断点续传:"+supportRanges,"客户端是否允许断点续传:"+(!notAcceptRanges));
                 if(fileSizeAlreadyKnown !=null && fileSizeAlreadyKnown >0){
                     // args[0] = file.length:43373950
                     // │ args[1] = content-length:37629451
-                    LogUtils.d("file.length:"+file.length(), "content-length:"+fileSizeAlreadyKnown);
+
                     if(file.length() == fileSizeAlreadyKnown){
                         //已经是下载成功的
                         LogUtils.d("file already exist and same bytes as header", filePath,url);
@@ -139,8 +142,8 @@ public class OkhttpDownloadUtil {
                         callback.onSuccess(url,filePath);
                         return;
                     }else {
-
-                        if(supportRanges){
+                        if(supportRanges && !notAcceptRanges){
+                            //服务端支持+ 客户端允许
                             builder.header("Range","bytes="+(file.length())+"-");
                             isRangeRequest = true;
                         }

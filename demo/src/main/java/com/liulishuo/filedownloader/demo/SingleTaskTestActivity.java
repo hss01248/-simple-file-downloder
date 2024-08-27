@@ -66,7 +66,7 @@ public class SingleTaskTestActivity extends AppCompatActivity {
                 //downloadId1 = createDownloadTask(1).start();
                 BaseDownloadTask downloadTask = createDownloadTask(1);
                 OkhttpDownloadUtil.downLoad(downloadTask.getUrl(),
-                        downloadTask.getTargetFilePath(), false, false, null, null,
+                        downloadTask.getTargetFilePath(), false, true,false, null, null,
                         new IDownloadCallback() {
                             @Override
                             public void onProgress(String url, String path, long total, long alreadyReceived) {
