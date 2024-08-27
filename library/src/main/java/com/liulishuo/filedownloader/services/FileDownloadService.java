@@ -22,6 +22,7 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.IBinder;
 
@@ -33,7 +34,6 @@ import com.liulishuo.filedownloader.util.FileDownloadHelper;
 import com.liulishuo.filedownloader.util.FileDownloadLog;
 import com.liulishuo.filedownloader.util.FileDownloadProperties;
 import com.liulishuo.filedownloader.util.FileDownloadUtils;
-
 import java.lang.ref.WeakReference;
 
 /**
@@ -101,7 +101,13 @@ public class FileDownloadService extends Service {
                 if (notificationManager == null) return;
                 notificationManager.createNotificationChannel(notificationChannel);
             }
-            startForeground(config.getNotificationId(), config.getNotification(this));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                        config.getNotificationId(),
+                        config.getNotification(this),
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                );
+            }
             if (FileDownloadLog.NEED_LOG) {
                 FileDownloadLog.d(this, "run service foreground with config: %s", config);
             }
