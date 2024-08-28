@@ -162,7 +162,37 @@ public class SingleTaskTestActivity extends AppCompatActivity {
         startBtn4.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                downloadId4 = createDownloadTask(4).start();
+                //downloadId4 = createDownloadTask(4).start();
+                BaseDownloadTask downloadTask = createDownloadTask(4);
+                AndroidDownloader.prepareDownload(downloadTask.getUrl(),false)
+                        .filePath(downloadTask.getTargetFilePath())
+                        .callback(new DownloadCallbackOnMainThreadWrapper(
+                                new IDownloadCallback() {
+                                    @Override
+                                    public void onSuccess(String url, String path) {
+                                        AndroidDownloader.openFile(path);
+                                    }
+
+                                    @Override
+                                    public void onFailed(String url, String path, String code, String msg, Throwable e) {
+                                        ToastUtils.showShort(code+" "+msg);
+                                    }
+
+                                    @Override
+                                    public void onProgress(String url, String path, long total, long alreadyReceived) {
+                                        progressBar4.setMax((int) total);
+                                        progressBar4.setProgress((int) alreadyReceived);
+                                        detailTv4.setText(path.substring(path.lastIndexOf("/")+1));
+                                    }
+
+                                    @Override
+                                    public void onSpeed(String url, String path, long speed) {
+                                        String text = speed/1024+"KB/s";
+                                        speedTv4.setText(text);
+
+                                    }
+                                }
+                        ));
             }
         });
 

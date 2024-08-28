@@ -194,6 +194,7 @@ public class OkhttpDownloadUtil {
             if(fileSizeAlreadyKnown ==null){
                 if(!append){
                    // fileSizeAlreadyKnown = (long) inputStream.available();
+                    w("没有返回cotent-length,尝试获取inputStream.available:"+inputStream.available());
                 }
             }
 
@@ -220,9 +221,12 @@ public class OkhttpDownloadUtil {
 
                     @Override
                     public void onProgress(String url,String path,long total,long alreadyReceived) {
-                        d("download-progress",((alreadyReceived+len)*100.0/finalFileSizeAlreadyKnown1)+"%, "
-                                +url, (alreadyReceived+len)/1024+"KB");
-                        callback.onProgress(url, filePath, finalFileSizeAlreadyKnown1, alreadyReceived+len);
+                        if(finalFileSizeAlreadyKnown1 !=null){
+                            d("download-progress",((alreadyReceived+len)*100.0/finalFileSizeAlreadyKnown1)+"%, "
+                                    +url, (alreadyReceived+len)/1024+"KB");
+                        }
+                        callback.onProgress(url, filePath, finalFileSizeAlreadyKnown1==null?0:finalFileSizeAlreadyKnown1,
+                                alreadyReceived+len);
 
                     }
                 });
