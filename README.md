@@ -14,6 +14,13 @@ download-okhttp-android is a simple callback wrapper and enter code wrapper for 
 
 # usage
 
+```groovy
+//java use
+implementation "com.github.hss01248.simple-file-downloder:download-okhttp:1.0.2"
+//android use:
+implementation "com.github.hss01248.simple-file-downloder:download-okhttp-android:1.0.2"
+```
+
 ## download-okhttp
 
 ```java
@@ -21,7 +28,7 @@ DownloadConfig.newBuilder()
                 .url(url)
   							....
   							.callback();
-//with callback() called , the download begain start with a 20 thread pool, which can be change by:
+//with callback() called , the download begain start with a 20 thread pool(when set async, which is default in android), which can be change by:
 
 OkhttpDownloadUtil.setThreadCount(int threadCount)
 ```
@@ -72,9 +79,23 @@ public static DownloadConfig.Builder prepareDownload(String url,boolean wifiRequ
 
 
 
+//todo:
+
+Notification support 
+
+download list ui and manager support
+
 # the old FileDownloader lib:
 
 Fork from https://github.com/lingochamp/FileDownloader 1.7.7 
 
 and has adapte android 14 service type.
+
+
+
+```groovy
+api 'com.github.hss01248.simple-file-downloder:filedownloder-old:1.0.2'
+```
+
+
 

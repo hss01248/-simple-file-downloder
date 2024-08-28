@@ -161,7 +161,7 @@ public class DownloadConfig {
         private String tag;
         private Map<String, Object> tags;
 
-        private  boolean requestSync;
+        private  boolean requestSync = true;
 
 
         private Builder() {

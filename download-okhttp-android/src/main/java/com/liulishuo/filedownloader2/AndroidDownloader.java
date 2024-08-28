@@ -42,6 +42,7 @@ public class AndroidDownloader {
     public static DownloadConfig.Builder prepareDownload(String url,boolean wifiRequired){
         return DownloadConfig.newBuilder()
                 .url(url)
+                .requestSync(false)
                 .wifiRequire(wifiRequired);
     }
 
