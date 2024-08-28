@@ -1,2 +1,2 @@
-include ':demo', ':library',':okhttp-no-service'
+include ':demo', ':filedownloder-old', ':download-okhttp-android'
 include ':download-okhttp'

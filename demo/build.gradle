@@ -45,8 +45,8 @@ dependencies {
     implementation 'com.google.android.material:material:1.0.0'
     debugImplementation 'cn.dreamtobe.threaddebugger:threaddebugger:1.3.3'
     releaseImplementation 'cn.dreamtobe.threaddebugger:threaddebugger-no-op:1.3.3'
-    implementation project(':library')
-    implementation project(':okhttp-no-service')
+    implementation project(':filedownloder-old')
+    implementation project(':download-okhttp-android')
     // for testing
     implementation 'com.squareup.okio:okio:1.14.0'
      api 'com.github.hss01248.utilcodeEnhance:openuri:1.6.3'
