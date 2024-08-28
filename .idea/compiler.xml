@@ -11,6 +11,10 @@
       <entry name="!?*.kt" />
       <entry name="!?*.clj" />
     </wildcardResourcePatterns>
-    <bytecodeTargetLevel target="11" />
+    <bytecodeTargetLevel target="1.8">
+      <module name="FileDownloader-fork2.demo" target="11" />
+      <module name="FileDownloader-fork2.library" target="11" />
+      <module name="FileDownloader-fork2.okhttp-no-service" target="11" />
+    </bytecodeTargetLevel>
   </component>
 </project>

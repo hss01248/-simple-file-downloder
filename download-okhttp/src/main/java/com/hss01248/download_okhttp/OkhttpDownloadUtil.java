@@ -1,16 +1,4 @@
-package com.liulishuo.filedownloader2;
-
-import android.text.TextUtils;
-import android.util.Log;
-
-
-import androidx.annotation.Nullable;
-
-import com.blankj.utilcode.util.ConvertUtils;
-import com.blankj.utilcode.util.FileIOUtils;
-import com.blankj.utilcode.util.FileUtils;
-import com.blankj.utilcode.util.LogUtils;
-import com.blankj.utilcode.util.ThreadUtils;
+package com.hss01248.download_okhttp;
 
 
 import java.io.BufferedOutputStream;
@@ -18,14 +6,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
-import okhttp3.Call;
-import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -47,36 +35,49 @@ public class OkhttpDownloadUtil {
     }
 
 
-  public static void downLoad(String url, String filePath,
-                          boolean forceRedownload,
-                          boolean notAcceptRanges,
-                          boolean wifiRequire,
-                  @Nullable Map<String,String> headers,
-                          @Nullable Long fileSizeAlreadyKnown,
-                          IDownloadCallback callback)  {
-        ThreadUtils.executeByIo(new ThreadUtils.SimpleTask<Object>() {
-            @Override
-            public Object doInBackground() throws Throwable {
-                downLoadInThread(url, filePath, forceRedownload,notAcceptRanges, wifiRequire, headers, fileSizeAlreadyKnown, callback);
-                return 1;
-            }
+    volatile  static ExecutorService service;
 
-            @Override
-            public void onSuccess(Object result) {
+    public static void setThreadCount(int threadCount) {
+        OkhttpDownloadUtil.threadCount = threadCount;
+    }
 
+    static int threadCount = 20;
+
+    public static void downloadAsync(DownloadConfig config){
+        if(service ==null){
+            service = Executors.newFixedThreadPool(threadCount);
+        }
+        service.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    downloadSync(config);
+                }catch (Throwable throwable){
+                    w(throwable,config.getUrl());
+                }
             }
         });
 
     }
 
-   private static void downLoadInThread(String url, String filePath,
-                  boolean forceRedownload,
-                   boolean notAcceptRanges,
-                  boolean wifiRequire,
-                 Map<String,String> headers,
-                 @Nullable Long fileSizeAlreadyKnown,
-                  IDownloadCallback callback)  {
+
+   public static void downloadSync(DownloadConfig config)  {
+
+       String url = config.getUrl();
+       String filePath = config.getFilePath();
+       boolean forceRedownload = config.isForceRedownload();
+       boolean notAcceptRanges = config.isNotAcceptRanges();
+       boolean wifiRequire = config.isWifiRequire();
+       Map<String,String> headers = config.getHeaders();
+       Long fileSizeAlreadyKnown = config.getFileSizeAlreadyKnown();
+       IDownloadCallback callback = config.getCallback();
+
         initClient();
+        if(runningTask.contains(url)){
+            w("该url已经在下载中",url);
+            callback.onFailed(url,filePath,"","该url已经在下载中",null);
+            return;
+        }
 
         File file = new File(filePath);
 
@@ -119,17 +120,20 @@ public class OkhttpDownloadUtil {
                         if(response.isSuccessful()){
                             String lenStr =   response.header("Content-Length");
                             supportRanges = "bytes".equals(response.header("Accept-Ranges"));
-                            if(!TextUtils.isEmpty(lenStr) && TextUtils.isDigitsOnly(lenStr)){
-                                fileSizeAlreadyKnown = Long.parseLong(lenStr);
+                            if(lenStr !=null && !"".equals(lenStr)){
+                                try{
+                                    fileSizeAlreadyKnown = Long.parseLong(lenStr);
+                                }catch (Throwable throwable){
+                                }
                             }
                         }else {
-                            LogUtils.w("head() request failed0",url,response.code(),response.message());
+                            w("head() request failed0",url,response.code(),response.message());
                         }
                     }catch (Throwable throwable){
-                        LogUtils.w("head() request failed",url,throwable);
+                        w("head() request failed",url,throwable);
                     }
                 }
-                LogUtils.d("file.length:"+file.length(), "content-length:" +fileSizeAlreadyKnown,
+                d("file.length:"+file.length(), "content-length:" +fileSizeAlreadyKnown,
                         "服务端是否支持断点续传:"+supportRanges,"客户端是否允许断点续传:"+(!notAcceptRanges));
                 if(fileSizeAlreadyKnown !=null && fileSizeAlreadyKnown >0){
                     // args[0] = file.length:43373950
@@ -137,7 +141,7 @@ public class OkhttpDownloadUtil {
 
                     if(file.length() == fileSizeAlreadyKnown){
                         //已经是下载成功的
-                        LogUtils.d("file already exist and same bytes as header", filePath,url);
+                        d("file already exist and same bytes as header", filePath,url);
                         runningTask.remove(url);
                         callback.onSuccess(url,filePath);
                         return;
@@ -159,32 +163,37 @@ public class OkhttpDownloadUtil {
         try{
             Response response = client.newCall(request).execute();
             if(!response.isSuccessful()){
-                LogUtils.w("download failed0",url,response.code(),response.message());
+                w("download failed0",url,response.code(),response.message());
                 runningTask.remove(url);
                 callback.onFailed(url,filePath,response.code()+"","download failed: "+response.message(),null);
                 return;
             }
             if(response.body() == null ){
-                LogUtils.w("download failed: request success but response body is empty!",url,response.code(),response.message());
+                w("download failed: request success but response body is empty!",url,response.code(),response.message());
                 runningTask.remove(url);
                 callback.onFailed(url,filePath,"","request success but response body is empty! ",null);
                 return;
             }
 
-            String lenStr =   response.header("Content-Length");
-            if(!TextUtils.isEmpty(lenStr) && TextUtils.isDigitsOnly(lenStr)){
-                fileSizeAlreadyKnown = Long.parseLong(lenStr);
+            if(!isRangeRequest){
+                String lenStr =   response.header("Content-Length");
+                if(lenStr !=null && !"".equals(lenStr)){
+                    try{
+                        fileSizeAlreadyKnown = Long.parseLong(lenStr);
+                    }catch (Throwable throwable){
+                    }
+                }
             }
             //httpcode!=206 且响应头没有Content-Range的话,就说明还是全部文件,而不是部分文件:
 
             InputStream inputStream = response.body().byteStream();
             boolean append = file.exists() && file.length() > 0 && isRangeRequest;
             //inputStream.available():1049256  返回的和content-length不一致
-            LogUtils.d("download as append: "+append,url,"inputStream.available():"+
+            d("download as append: "+append,url,"inputStream.available():"+
                     inputStream.available(),"content-length:"+fileSizeAlreadyKnown);
             if(fileSizeAlreadyKnown ==null){
                 if(!append){
-                    fileSizeAlreadyKnown = (long) inputStream.available();
+                   // fileSizeAlreadyKnown = (long) inputStream.available();
                 }
             }
 
@@ -192,7 +201,7 @@ public class OkhttpDownloadUtil {
             Long finalFileSizeAlreadyKnown1 = fileSizeAlreadyKnown;
             long len = file.length();
             try{
-                boolean success = writeFileFromIS(url,file, inputStream, append, new IDownloadCallback() {
+                boolean success = writeFileFromIS(url,file, inputStream, append,config, new IDownloadCallback() {
                     @Override
                     public void onSuccess(String url, String path) {
 
@@ -204,38 +213,56 @@ public class OkhttpDownloadUtil {
                     }
 
                     @Override
+                    public void onSpeed(String url, String path, long speed) {
+                        d("speed--> ",url,speed/1024+"KB/s");
+                        callback.onSpeed(url, path, speed);
+                    }
+
+                    @Override
                     public void onProgress(String url,String path,long total,long alreadyReceived) {
-                        Log.v("download-progress",((alreadyReceived+len)*100.0/finalFileSizeAlreadyKnown1)+"%, "
-                                +url+", "+ ConvertUtils.byte2FitMemorySize(alreadyReceived+len,1));
+                        d("download-progress",((alreadyReceived+len)*100.0/finalFileSizeAlreadyKnown1)+"%, "
+                                +url, (alreadyReceived+len)/1024+"KB");
                         callback.onProgress(url, filePath, finalFileSizeAlreadyKnown1, alreadyReceived+len);
 
                     }
                 });
                 runningTask.remove(url);
                 if(success){
+                    //对比一下文件大小,相等才是成功:
+                    if(fileSizeAlreadyKnown !=null){
+                        if(file.length() != fileSizeAlreadyKnown){
+                            w("download failed6",url,"","file size not same as the content-length");
+                            callback.onFailed(url,filePath,"","download file write failed: ",null);
+                            return;
+                        }
+                    }
                     callback.onSuccess(url,filePath);
-                    LogUtils.d("download success",url,response.code(),response.message(),filePath,
+                    d("download success",url,response.code(),response.message(),filePath,
                             "file.length:"+file.length(),"content-length:"+finalFileSizeAlreadyKnown1);
                 }else {
-                    LogUtils.w("download failed4",url,response.code(),response.message());
+                    w("download failed4",url,response.code(),response.message());
                     callback.onFailed(url,filePath,"","download file write failed: ",null);
                 }
             }catch (InterruptedException e){
-                LogUtils.w(url,e);
+                w(url,e,"请求被取消/暂停");
             }
 
         }catch (Throwable throwable){
-            LogUtils.w("download failed1",url,throwable);
+            w("download failed-reqeust failed",url,filePath,throwable);
             runningTask.remove(url);
             callback.onFailed(url,filePath,"","download file  failed: "+ throwable.getMessage(),throwable);
         }
     }
+
+
 
     private static void initClient() {
         if(client ==null){
             client = new OkHttpClient.Builder()
                     .followRedirects(true)
                     .followSslRedirects(true)
+                    .retryOnConnectionFailure(true)
+                    .connectTimeout(20, TimeUnit.SECONDS)
                     .build();
         }
     }
@@ -244,10 +271,15 @@ public class OkhttpDownloadUtil {
     public static boolean writeFileFromIS(String url,final File file,
                                           final InputStream is,
                                           final boolean append,
-                                          final IDownloadCallback listener) throws InterruptedException{
-        if (is == null || !FileUtils.createOrExistsFile(file)) {
-            Log.e("FileIOUtils", "create file <" + file + "> failed.");
+                                          DownloadConfig config,
+                                          final IDownloadCallback listener) throws InterruptedException, IOException {
+        if (is == null || file.isDirectory()) {
+            w("FileIOUtils, create file <" + file + "> failed.");
             return false;
+        }
+        if(!file.exists()){
+            file.getParentFile().mkdirs();
+            file.createNewFile();
         }
         OutputStream os = null;
         try {
@@ -263,15 +295,44 @@ public class OkhttpDownloadUtil {
                 int curSize = 0;
                 listener.onProgress("","",0,0);
                 byte[] data = new byte[sBufferSize];
+                long lastProgress = 0;
+
+                //开启子线程,通过文件大小的变化来计算网速:
+                new Thread(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                long lastSpeedTime = 0;
+                                long latFileLength = file.length();
+                                while (runningTask.contains(url)){
+                                    if(System.currentTimeMillis() - lastSpeedTime >= config.getSpeedCallbackIntervalMills()){
+                                        long len = file.length();
+                                        long speed = (len - latFileLength)*1000/(System.currentTimeMillis() - lastSpeedTime);
+                                        lastSpeedTime = System.currentTimeMillis();
+                                        latFileLength = len;
+                                        if(speed > 0){
+                                            listener.onSpeed(url, file.getAbsolutePath(), speed);
+                                        }
+                                    }else {
+
+                                    }
+                                }
+                            }
+                        }
+                ).start();
                 for (int len; (len = is.read(data)) != -1; ) {
                     os.write(data, 0, len);
                     curSize += len;
-                    listener.onProgress("","",0,curSize);
+                    if(System.currentTimeMillis() - lastProgress > config.getProgressCallbackIntervalMills()){
+                        lastProgress = System.currentTimeMillis();
+                        listener.onProgress("","",0,curSize);
+                    }
                     if(!runningTask.contains(url)){
                         //中断读取
-                        throw  new InterruptedException("paused");
+                        throw  new InterruptedException("paused or stop");
                     }
                 }
+                listener.onProgress("","",0,curSize);
             }
             return true;
         } catch (IOException e) {
@@ -291,5 +352,31 @@ public class OkhttpDownloadUtil {
                 e.printStackTrace();
             }
         }
+    }
+
+    private static void w(Object... args) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("warn:  ");
+        for (Object arg : args) {
+            sb.append(arg)
+                    .append("\n");
+            if(arg instanceof Throwable){
+                ((Throwable) arg).printStackTrace();
+            }
+        }
+        System.out.println(sb.toString());
+    }
+
+    private static void d(Object... args) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("debug:  ");
+        for (Object arg : args) {
+            sb.append(arg)
+                    .append("\n");
+            if(arg instanceof Throwable){
+                ((Throwable) arg).printStackTrace();
+            }
+        }
+        System.out.println(sb.toString());
     }
 }

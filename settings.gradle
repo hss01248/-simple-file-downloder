@@ -1,1 +1,2 @@
 include ':demo', ':library',':okhttp-no-service'
+include ':download-okhttp'

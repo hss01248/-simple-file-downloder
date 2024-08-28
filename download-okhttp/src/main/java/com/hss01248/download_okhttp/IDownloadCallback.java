@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.liulishuo.filedownloader2;
+package com.hss01248.download_okhttp;
 
 /**
  * @Despciption todo
@@ -24,10 +24,12 @@ package com.liulishuo.filedownloader2;
  */
 public interface IDownloadCallback{
 
-    void onSuccess(String url,String path);
+    void onSuccess(String url, String path);
 
-    void onFailed(String url,String path,String code,String msg,Throwable e);
+    void onFailed(String url, String path, String code, String msg, Throwable e);
 
-    default  void onProgress(String url,String path,long total,long alreadyReceived){}
+    default  void onProgress(String url, String path, long total, long alreadyReceived){}
+
+    default  void onSpeed(String url, String path, long speed){}
 }
 

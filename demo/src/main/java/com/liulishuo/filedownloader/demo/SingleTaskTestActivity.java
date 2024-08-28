@@ -1,32 +1,23 @@
 package com.liulishuo.filedownloader.demo;
 
-import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
-
-import android.text.TextUtils;
-import android.view.TextureView;
 import android.view.View;
-import android.webkit.MimeTypeMap;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.blankj.utilcode.util.ActivityUtils;
-import com.blankj.utilcode.util.AppUtils;
-import com.blankj.utilcode.util.LogUtils;
-import com.blankj.utilcode.util.ThreadUtils;
 import com.blankj.utilcode.util.ToastUtils;
 import com.google.android.material.snackbar.Snackbar;
-import com.hss01248.openuri2.OpenUri2;
+import com.hss01248.download_okhttp.IDownloadCallback;
+import com.hss01248.download_okhttp.OkhttpDownloadUtil;
 import com.liulishuo.filedownloader.BaseDownloadTask;
 import com.liulishuo.filedownloader.FileDownloadSampleListener;
 import com.liulishuo.filedownloader.FileDownloader;
 import com.liulishuo.filedownloader.util.FileDownloadUtils;
-import com.liulishuo.filedownloader2.IDownloadCallback;
-import com.liulishuo.filedownloader2.OkhttpDownloadUtil;
+import com.liulishuo.filedownloader2.AndroidDownloader;
+import com.liulishuo.filedownloader2.DownloadCallbackOnMainThreadWrapper;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
@@ -65,54 +56,35 @@ public class SingleTaskTestActivity extends AppCompatActivity {
             public void onClick(View v) {
                 //downloadId1 = createDownloadTask(1).start();
                 BaseDownloadTask downloadTask = createDownloadTask(1);
-                OkhttpDownloadUtil.downLoad(downloadTask.getUrl(),
-                        downloadTask.getTargetFilePath(), false, true,false, null, null,
-                        new IDownloadCallback() {
-                            @Override
-                            public void onProgress(String url, String path, long total, long alreadyReceived) {
-                                IDownloadCallback.super.onProgress(url, path, total, alreadyReceived);
-                                ThreadUtils.getMainHandler().post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        progressBar1.setMax((int) total);
-                                        progressBar1.setProgress((int) alreadyReceived);
-                                        filenameTv1.setText(path.substring(path.lastIndexOf("/")+1));
-                                    }
-                                });
+                AndroidDownloader.prepareDownload(downloadTask.getUrl(),false)
+                                .filePath(downloadTask.getTargetFilePath())
+                                .callback(new DownloadCallbackOnMainThreadWrapper(
+                                        new IDownloadCallback() {
+                                            @Override
+                                            public void onSuccess(String url, String path) {
+                                                AndroidDownloader.openFile(path);
+                                            }
 
-                            }
+                                            @Override
+                                            public void onFailed(String url, String path, String code, String msg, Throwable e) {
+                                                ToastUtils.showShort(code+" "+msg);
+                                            }
 
-                            @Override
-                            public void onSuccess(String url, String path) {
-                                Intent intent = new Intent("android.intent.action.VIEW");
-                                intent.addCategory("android.intent.category.DEFAULT");
-                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                Uri uri = OpenUri2.fromFile(getApplicationContext(),new File(path));
-                                OpenUri2.addPermissionR(intent);
-                                //
-                                String name = new File(path).getName();
-                                if(name.contains(".")){
-                                    name = name.substring(name.lastIndexOf(".")+1);
-                                }
-                                String type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(name);
-                                if(!TextUtils.isEmpty(type)){
-                                    intent.setDataAndType(uri, type);
-                                }
-                                try {
-                                    ActivityUtils.getTopActivity().startActivity(intent);
-                                }catch (Throwable throwable){
-                                    LogUtils.w(throwable);
-                                    ToastUtils.showShort(throwable.getMessage());
-                                }
+                                            @Override
+                                            public void onProgress(String url, String path, long total, long alreadyReceived) {
+                                                progressBar1.setMax((int) total);
+                                                progressBar1.setProgress((int) alreadyReceived);
+                                                filenameTv1.setText(path.substring(path.lastIndexOf("/")+1));
+                                            }
 
+                                            @Override
+                                            public void onSpeed(String url, String path, long speed) {
+                                                String text = speed/1024+"KB/s";
+                                                speedTv1.setText(text);
 
-                            }
-
-                            @Override
-                            public void onFailed(String url, String path, String code, String msg, Throwable e) {
-
-                            }
-                        });
+                                            }
+                                        }
+                                ));
             }
         });
 
@@ -155,6 +127,8 @@ public class SingleTaskTestActivity extends AppCompatActivity {
             }
         });
     }
+
+
 
     // test for normal task.
     private void initNormalDataAction() {
