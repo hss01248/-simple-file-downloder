@@ -42,12 +42,23 @@ public class DownloadConfig {
 
     private int speedCallbackIntervalMills;
 
-
-   private boolean wifiRequire;
-
    private  int retryTimes;
 
    private String tag;
+
+    public String getSaveDir() {
+        return saveDir;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
+    public void setSaveDir(String saveDir) {
+        this.saveDir = saveDir;
+    }
+
+    private String saveDir;
 
     public boolean isRequestSync() {
         return requestSync;
@@ -92,9 +103,7 @@ public class DownloadConfig {
         return speedCallbackIntervalMills;
     }
 
-    public boolean isWifiRequire() {
-        return wifiRequire;
-    }
+
 
     public int getRetryTimes() {
         return retryTimes;
@@ -118,11 +127,11 @@ public class DownloadConfig {
         callback = builder.callback;
         progressCallbackIntervalMills = builder.progressCallbackIntervalMills;
         speedCallbackIntervalMills = builder.speedCallbackIntervalMills;
-        wifiRequire = builder.wifiRequire;
         retryTimes = builder.retryTimes;
         tag = builder.tag;
         tags = builder.tags;
         requestSync = builder.requestSync;
+        saveDir = builder.saveDir;
     }
     public static Builder newBuilder() {
         return new Builder();
@@ -138,11 +147,11 @@ public class DownloadConfig {
         builder.callback = copy.getCallback();
         builder.progressCallbackIntervalMills = copy.getProgressCallbackIntervalMills();
         builder.speedCallbackIntervalMills = copy.getSpeedCallbackIntervalMills();
-        builder.wifiRequire = copy.isWifiRequire();
         builder.retryTimes = copy.getRetryTimes();
         builder.tag = copy.getTag();
         builder.tags = copy.getTags();
         builder.requestSync = copy.requestSync;
+        builder.saveDir = copy.getSaveDir();
         return builder;
     }
 
@@ -156,13 +165,12 @@ public class DownloadConfig {
         private IDownloadCallback callback;
         private int progressCallbackIntervalMills = 300;//ms
         private int speedCallbackIntervalMills = 200;//ms
-        private boolean wifiRequire;
         private int retryTimes;
         private String tag;
         private Map<String, Object> tags;
 
         private  boolean requestSync = true;
-
+        private String saveDir;
 
         private Builder() {
         }
@@ -174,6 +182,11 @@ public class DownloadConfig {
         }
         public Builder url(String val) {
             url = val;
+            return this;
+        }
+
+        public Builder saveDir(String saveDir) {
+            this.saveDir = saveDir;
             return this;
         }
 
@@ -216,10 +229,7 @@ public class DownloadConfig {
             return this;
         }
 
-        public Builder wifiRequire(boolean val) {
-            wifiRequire = val;
-            return this;
-        }
+
 
         public Builder retryTimes(int val) {
             retryTimes = val;
@@ -256,7 +266,7 @@ public class DownloadConfig {
             return new DownloadConfig(this);
         }
 
-        public void callback(IDownloadCallback val) {
+        public void start(IDownloadCallback val) {
             callback = val;
             DownloadConfig build = build();
             // sync async

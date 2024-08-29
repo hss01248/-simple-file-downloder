@@ -41,7 +41,13 @@ public class OkhttpDownloadUtil {
         OkhttpDownloadUtil.threadCount = threadCount;
     }
 
-    static int threadCount = 20;
+    static int threadCount = 30;
+
+    public static void setGlobalSaveDir(String globalSaveDir) {
+        OkhttpDownloadUtil.globalSaveDir = globalSaveDir;
+    }
+
+    static String globalSaveDir;
 
     public static void downloadAsync(DownloadConfig config){
         if(service ==null){
@@ -67,7 +73,7 @@ public class OkhttpDownloadUtil {
        String filePath = config.getFilePath();
        boolean forceRedownload = config.isForceRedownload();
        boolean notAcceptRanges = config.isNotAcceptRanges();
-       boolean wifiRequire = config.isWifiRequire();
+
        Map<String,String> headers = config.getHeaders();
        Long fileSizeAlreadyKnown = config.getFileSizeAlreadyKnown();
        IDownloadCallback callback = config.getCallback();
@@ -79,9 +85,16 @@ public class OkhttpDownloadUtil {
             return;
         }
 
-        File file = new File(filePath);
 
-        //todo wifiRequire
+       try {
+           filePath = FileAndDirUtil.dealFilePath(config);
+           config.setFilePath(filePath);
+       } catch (Throwable e) {
+           callback.onFailed(url,filePath,"",e.getMessage(),null);
+           return;
+       }
+
+       File file = new File(filePath);
 
         Request.Builder builder = new Request.Builder()
                 .url(url)
@@ -202,6 +215,7 @@ public class OkhttpDownloadUtil {
             Long finalFileSizeAlreadyKnown1 = fileSizeAlreadyKnown;
             long len = file.length();
             try{
+                String finalFilePath = filePath;
                 boolean success = writeFileFromIS(url,file, inputStream, append,config, new IDownloadCallback() {
                     @Override
                     public void onSuccess(String url, String path) {
@@ -225,7 +239,7 @@ public class OkhttpDownloadUtil {
                             d("download-progress",((alreadyReceived+len)*100.0/finalFileSizeAlreadyKnown1)+"%, "
                                     +url, (alreadyReceived+len)/1024+"KB");
                         }
-                        callback.onProgress(url, filePath, finalFileSizeAlreadyKnown1==null?0:finalFileSizeAlreadyKnown1,
+                        callback.onProgress(url, finalFilePath, finalFileSizeAlreadyKnown1==null?0:finalFileSizeAlreadyKnown1,
                                 alreadyReceived+len);
 
                     }
@@ -257,6 +271,7 @@ public class OkhttpDownloadUtil {
             callback.onFailed(url,filePath,"","download file  failed: "+ throwable.getMessage(),throwable);
         }
     }
+
 
 
 
@@ -358,7 +373,7 @@ public class OkhttpDownloadUtil {
         }
     }
 
-    private static void w(Object... args) {
+     static void w(Object... args) {
         StringBuilder sb = new StringBuilder();
         sb.append("warn:  ");
         for (Object arg : args) {
@@ -371,7 +386,7 @@ public class OkhttpDownloadUtil {
         System.out.println(sb.toString());
     }
 
-    private static void d(Object... args) {
+     static void d(Object... args) {
         StringBuilder sb = new StringBuilder();
         sb.append("debug:  ");
         for (Object arg : args) {

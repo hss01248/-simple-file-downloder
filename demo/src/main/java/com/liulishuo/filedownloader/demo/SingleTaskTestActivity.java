@@ -56,9 +56,9 @@ public class SingleTaskTestActivity extends AppCompatActivity {
             public void onClick(View v) {
                 //downloadId1 = createDownloadTask(1).start();
                 BaseDownloadTask downloadTask = createDownloadTask(1);
-                AndroidDownloader.prepareDownload(downloadTask.getUrl(),false)
-                                .filePath(downloadTask.getTargetFilePath())
-                                .callback(new DownloadCallbackOnMainThreadWrapper(
+                AndroidDownloader.prepareDownload(downloadTask.getUrl())
+                                //.filePath(downloadTask.getTargetFilePath())
+                                .start(new DownloadCallbackOnMainThreadWrapper(
                                         new IDownloadCallback() {
                                             @Override
                                             public void onSuccess(String url, String path) {
@@ -164,9 +164,9 @@ public class SingleTaskTestActivity extends AppCompatActivity {
             public void onClick(View v) {
                 //downloadId4 = createDownloadTask(4).start();
                 BaseDownloadTask downloadTask = createDownloadTask(4);
-                AndroidDownloader.prepareDownload(downloadTask.getUrl(),false)
+                AndroidDownloader.prepareDownload(downloadTask.getUrl())
                         .filePath(downloadTask.getTargetFilePath())
-                        .callback(new DownloadCallbackOnMainThreadWrapper(
+                        .start(new DownloadCallbackOnMainThreadWrapper(
                                 new IDownloadCallback() {
                                     @Override
                                     public void onSuccess(String url, String path) {

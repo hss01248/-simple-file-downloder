@@ -1,6 +1,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.liulishuo.filedownloader2">
 
 
+    <application>
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                tools:node="merge"
+                android:name="com.liulishuo.filedownloader2.InitForDownloader"
+                android:value="androidx.startup" />
+        </provider>
+    </application>
 
 </manifest>
