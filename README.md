@@ -29,13 +29,13 @@ implementation "com.github.hss01248.simple-file-downloder:download-okhttp-androi
 //global init:  must init in java project;
 OkhttpDownloadUtil.setGlobalSaveDir(String dir)
   
-OkhttpDownloadUtil.setThreadCount(int threadCount) //default 30
+OkhttpDownloadUtil.setThreadCount(int threadCount) //default 20
 
 DownloadConfig.newBuilder()
                 .url(url)
   				....
   				.start(IDownloadCallback callback);
-//with start() called , the download begain start with a 30 thread pool(when set async, which is default in android), which can be change by:
+//with start() called , the download begain start with a  thread pool(when set async, which is default in android), which can be change by:
 
 ```
 

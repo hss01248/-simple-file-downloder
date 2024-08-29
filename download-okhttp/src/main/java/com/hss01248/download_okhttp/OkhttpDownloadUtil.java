@@ -41,7 +41,7 @@ public class OkhttpDownloadUtil {
         OkhttpDownloadUtil.threadCount = threadCount;
     }
 
-    static int threadCount = 30;
+    static int threadCount = 20;
 
     public static void setGlobalSaveDir(String globalSaveDir) {
         OkhttpDownloadUtil.globalSaveDir = globalSaveDir;
@@ -281,7 +281,9 @@ public class OkhttpDownloadUtil {
                     .followRedirects(true)
                     .followSslRedirects(true)
                     .retryOnConnectionFailure(true)
-                    .connectTimeout(20, TimeUnit.SECONDS)
+                    .connectTimeout(10, TimeUnit.SECONDS)
+                    .readTimeout(10,TimeUnit.SECONDS)
+                    .writeTimeout(10,TimeUnit.SECONDS)
                     .build();
         }
     }
