@@ -5,6 +5,7 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 import androidx.startup.Initializer;
 
+import com.blankj.utilcode.util.AppUtils;
 import com.hss01248.download_okhttp.OkhttpDownloadUtil;
 
 import java.io.File;
@@ -26,6 +27,7 @@ public class InitForDownloader implements Initializer<String> {
             dir = new File(context.getFilesDir(),"downloader");
         }
         OkhttpDownloadUtil.setGlobalSaveDir(dir.getAbsolutePath());
+        OkhttpDownloadUtil.setLogEnable(AppUtils.isAppDebug());
         return "downloaderxxx";
     }
 

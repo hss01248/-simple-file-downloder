@@ -41,7 +41,13 @@ public class OkhttpDownloadUtil {
         OkhttpDownloadUtil.threadCount = threadCount;
     }
 
-    static int threadCount = 20;
+    static int threadCount = 30;
+
+    public static void setLogEnable(boolean logEnable) {
+        OkhttpDownloadUtil.logEnable = logEnable;
+    }
+
+    static boolean logEnable = false;
 
     public static void setGlobalSaveDir(String globalSaveDir) {
         OkhttpDownloadUtil.globalSaveDir = globalSaveDir;
@@ -376,6 +382,9 @@ public class OkhttpDownloadUtil {
     }
 
      static void w(Object... args) {
+        if(!logEnable){
+            return;
+        }
         StringBuilder sb = new StringBuilder();
         sb.append("warn:  ");
         for (Object arg : args) {
@@ -389,6 +398,9 @@ public class OkhttpDownloadUtil {
     }
 
      static void d(Object... args) {
+         if(!logEnable){
+             return;
+         }
         StringBuilder sb = new StringBuilder();
         sb.append("debug:  ");
         for (Object arg : args) {

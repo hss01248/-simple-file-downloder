@@ -29,13 +29,19 @@ implementation "com.github.hss01248.simple-file-downloder:download-okhttp-androi
 //global init:  must init in java project;
 OkhttpDownloadUtil.setGlobalSaveDir(String dir)
   
-OkhttpDownloadUtil.setThreadCount(int threadCount) //default 20
+OkhttpDownloadUtil.setThreadCount(int threadCount) //default 30
+OkhttpDownloadUtil.setLogEnable(AppUtils.isAppDebug());
 
+
+
+
+//start
 DownloadConfig.newBuilder()
-                .url(url)
+           .url(url)
+           .requestSync(false)
   				....
   				.start(IDownloadCallback callback);
-//with start() called , the download begain start with a  thread pool(when set async, which is default in android), which can be change by:
+//with start() called
 
 ```
 
@@ -91,6 +97,15 @@ public static DownloadConfig.Builder prepareDownload(String url){
 
 //use the callback wrapper:
   .start(new DownloadCallbackOnMainThreadWrapper(new IDownloadCallback() {}));
+
+
+//自动全局配置:
+      File dir = context.getExternalFilesDir("downloader");
+        if(dir == null){
+            dir = new File(context.getFilesDir(),"downloader");
+        }
+        OkhttpDownloadUtil.setGlobalSaveDir(dir.getAbsolutePath());
+        OkhttpDownloadUtil.setLogEnable(AppUtils.isAppDebug());
 ```
 
 The globalSaveDir is set to context.getExternalFilesDir("downloader") by default;
