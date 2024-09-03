@@ -59,16 +59,26 @@ public class OkhttpDownloadUtil {
         if(service ==null){
             service = Executors.newFixedThreadPool(threadCount);
         }
-        service.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    downloadSync(config);
-                }catch (Throwable throwable){
-                    w(throwable,config.getUrl());
+        try{
+            service.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        downloadSync(config);
+                    }catch (Throwable throwable){
+                        w(throwable,config.getUrl());
+                        config.getCallback().onFailed(config.getUrl(), config.getFilePath(),
+                                throwable.getClass().getSimpleName(),throwable.getMessage(),throwable);
+                    }
                 }
-            }
-        });
+            });
+        }catch (Throwable throwable){
+            //等待队列超出长度,栈溢出等
+            w(throwable);
+            config.getCallback().onFailed(config.getUrl(), config.getFilePath(),
+                    throwable.getClass().getSimpleName(),throwable.getMessage(),throwable);
+        }
+
 
     }
 
@@ -83,6 +93,7 @@ public class OkhttpDownloadUtil {
        Map<String,String> headers = config.getHeaders();
        Long fileSizeAlreadyKnown = config.getFileSizeAlreadyKnown();
        IDownloadCallback callback = config.getCallback();
+       callback.onStartReal(url,filePath);
 
         initClient();
         if(runningTask.contains(url)){
@@ -207,7 +218,7 @@ public class OkhttpDownloadUtil {
 
             InputStream inputStream = response.body().byteStream();
             boolean append = file.exists() && file.length() > 0 && isRangeRequest;
-            //inputStream.available():1049256  返回的和content-length不一致
+            //inputStream.available():1049256  返回的和content-length不一致, 因为服务端用的buffered
             d("download as append: "+append,url,"inputStream.available():"+
                     inputStream.available(),"content-length:"+fileSizeAlreadyKnown);
             if(fileSizeAlreadyKnown ==null){
@@ -216,12 +227,9 @@ public class OkhttpDownloadUtil {
                     w("没有返回cotent-length,尝试获取inputStream.available:"+inputStream.available());
                 }
             }
-
-            int all = inputStream.available();
             Long finalFileSizeAlreadyKnown1 = fileSizeAlreadyKnown;
             long len = file.length();
             try{
-                String finalFilePath = filePath;
                 boolean success = writeFileFromIS(url,file, inputStream, append,config, new IDownloadCallback() {
                     @Override
                     public void onSuccess(String url, String path) {
@@ -233,21 +241,36 @@ public class OkhttpDownloadUtil {
 
                     }
 
+                    long lastReceived = 0;
+                    long lastProgressTime = 0;
                     @Override
-                    public void onSpeed(String url, String path, long speed) {
-                        d("speed--> ",url,speed/1024+"KB/s");
-                        callback.onSpeed(url, path, speed);
-                    }
+                    public void onProgress(String url,String path,long total,long alreadyReceived,long s) {
 
-                    @Override
-                    public void onProgress(String url,String path,long total,long alreadyReceived) {
-                        if(finalFileSizeAlreadyKnown1 !=null){
-                            d("download-progress",((alreadyReceived+len)*100.0/finalFileSizeAlreadyKnown1)+"%, "
-                                    +url, (alreadyReceived+len)/1024+"KB");
+                        if(finalFileSizeAlreadyKnown1 ==null){
+                            total = 0;
+                        }else {
+                            total = finalFileSizeAlreadyKnown1;
                         }
-                        callback.onProgress(url, finalFilePath, finalFileSizeAlreadyKnown1==null?0:finalFileSizeAlreadyKnown1,
-                                alreadyReceived+len);
+                        alreadyReceived = alreadyReceived+len;
 
+                        if(lastReceived ==0){
+                            lastReceived = alreadyReceived;
+                            lastProgressTime = System.currentTimeMillis();
+                            callback.onProgress(url,path,total,alreadyReceived,0L);
+                        }else {
+                            long changed = alreadyReceived - lastReceived;
+                            long speed = 0;
+                            if(System.currentTimeMillis() != lastProgressTime){
+                                speed = changed*1000 /(System.currentTimeMillis() - lastProgressTime);
+                            }
+                            lastProgressTime = System.currentTimeMillis();
+                            lastReceived = alreadyReceived;
+                            callback.onProgress(url,path,total,alreadyReceived,speed);
+                            if(finalFileSizeAlreadyKnown1 !=null){
+                                d("download-progress",((alreadyReceived+len)*100.0/finalFileSizeAlreadyKnown1)+"%, "
+                                        +url, (alreadyReceived+len)/1024+"KB, speed: "+speed/1024+"KB/s");
+                            }
+                        }
                     }
                 });
                 runningTask.remove(url);
@@ -255,8 +278,10 @@ public class OkhttpDownloadUtil {
                     //对比一下文件大小,相等才是成功:
                     if(fileSizeAlreadyKnown !=null){
                         if(file.length() != fileSizeAlreadyKnown){
-                            w("download failed6",url,"","file size not same as the content-length");
-                            callback.onFailed(url,filePath,"","download file write failed: ",null);
+                            w("download failed6",url,"size not same",
+                                    "file size not same as the content-length: "+file.length()+", "+fileSizeAlreadyKnown);
+                            callback.onFailed(url,filePath,"size not same",
+                                    "file size not same as the content-length: "+file.length()+", "+fileSizeAlreadyKnown,null);
                             return;
                         }
                     }
@@ -269,6 +294,7 @@ public class OkhttpDownloadUtil {
                 }
             }catch (InterruptedException e){
                 w(url,e,"请求被取消/暂停");
+                callback.onCancel(url,filePath);
             }
 
         }catch (Throwable throwable){
@@ -317,49 +343,25 @@ public class OkhttpDownloadUtil {
                     os.write(data, 0, len);
                 }
             } else {
-                int totalSize = is.available() ;
                 //对于网络流量,这个api不准确
                 int curSize = 0;
-                listener.onProgress("","",0,0);
+                listener.onProgress(url,file.getAbsolutePath(),0,0,0);
                 byte[] data = new byte[sBufferSize];
                 long lastProgress = 0;
 
-                //开启子线程,通过文件大小的变化来计算网速:
-                new Thread(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                long lastSpeedTime = 0;
-                                long latFileLength = file.length();
-                                while (runningTask.contains(url)){
-                                    if(System.currentTimeMillis() - lastSpeedTime >= config.getSpeedCallbackIntervalMills()){
-                                        long len = file.length();
-                                        long speed = (len - latFileLength)*1000/(System.currentTimeMillis() - lastSpeedTime);
-                                        lastSpeedTime = System.currentTimeMillis();
-                                        latFileLength = len;
-                                        if(speed > 0){
-                                            listener.onSpeed(url, file.getAbsolutePath(), speed);
-                                        }
-                                    }else {
-
-                                    }
-                                }
-                            }
-                        }
-                ).start();
                 for (int len; (len = is.read(data)) != -1; ) {
                     os.write(data, 0, len);
                     curSize += len;
                     if(System.currentTimeMillis() - lastProgress > config.getProgressCallbackIntervalMills()){
                         lastProgress = System.currentTimeMillis();
-                        listener.onProgress("","",0,curSize);
+                        listener.onProgress(url,file.getAbsolutePath(),0,curSize,0);
                     }
                     if(!runningTask.contains(url)){
                         //中断读取
                         throw  new InterruptedException("paused or stop");
                     }
                 }
-                listener.onProgress("","",0,curSize);
+                listener.onProgress("","",0,curSize,0);
             }
             return true;
         } catch (IOException e) {

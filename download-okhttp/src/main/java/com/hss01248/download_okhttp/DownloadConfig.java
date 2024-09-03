@@ -40,8 +40,6 @@ public class DownloadConfig {
 
     private int progressCallbackIntervalMills;
 
-    private int speedCallbackIntervalMills;
-
    private  int retryTimes;
 
    private String tag;
@@ -99,12 +97,6 @@ public class DownloadConfig {
         return progressCallbackIntervalMills;
     }
 
-    public int getSpeedCallbackIntervalMills() {
-        return speedCallbackIntervalMills;
-    }
-
-
-
     public int getRetryTimes() {
         return retryTimes;
     }
@@ -126,7 +118,6 @@ public class DownloadConfig {
         fileSizeAlreadyKnown = builder.fileSizeAlreadyKnown;
         callback = builder.callback;
         progressCallbackIntervalMills = builder.progressCallbackIntervalMills;
-        speedCallbackIntervalMills = builder.speedCallbackIntervalMills;
         retryTimes = builder.retryTimes;
         tag = builder.tag;
         tags = builder.tags;
@@ -146,7 +137,6 @@ public class DownloadConfig {
         builder.fileSizeAlreadyKnown = copy.getFileSizeAlreadyKnown();
         builder.callback = copy.getCallback();
         builder.progressCallbackIntervalMills = copy.getProgressCallbackIntervalMills();
-        builder.speedCallbackIntervalMills = copy.getSpeedCallbackIntervalMills();
         builder.retryTimes = copy.getRetryTimes();
         builder.tag = copy.getTag();
         builder.tags = copy.getTags();
@@ -164,7 +154,7 @@ public class DownloadConfig {
         private Long fileSizeAlreadyKnown;
         private IDownloadCallback callback;
         private int progressCallbackIntervalMills = 300;//ms
-        private int speedCallbackIntervalMills = 200;//ms
+
         private int retryTimes;
         private String tag;
         private Map<String, Object> tags;
@@ -224,13 +214,6 @@ public class DownloadConfig {
             return this;
         }
 
-        public Builder speedCallbackIntervalMills(int val) {
-            speedCallbackIntervalMills = val;
-            return this;
-        }
-
-
-
         public Builder retryTimes(int val) {
             retryTimes = val;
             return this;
@@ -269,6 +252,7 @@ public class DownloadConfig {
         public void start(IDownloadCallback val) {
             callback = val;
             DownloadConfig build = build();
+            callback.onCodeStart(url,filePath);
             // sync async
             if(build.isRequestSync()){
                 OkhttpDownloadUtil.downloadSync(build);

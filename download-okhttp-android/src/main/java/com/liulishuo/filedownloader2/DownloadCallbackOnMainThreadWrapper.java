@@ -54,21 +54,41 @@ public class DownloadCallbackOnMainThreadWrapper implements IDownloadCallback {
     }
 
     @Override
-    public void onProgress(String url, String path, long total, long alreadyReceived) {
+    public void onProgress(String url, String path, long total, long alreadyReceived,long speed) {
         ThreadUtils.getMainHandler().post(new Runnable() {
             @Override
             public void run() {
-                callback.onProgress(url, path, total, alreadyReceived);
+                callback.onProgress(url, path, total, alreadyReceived,speed);
             }
         });
     }
 
     @Override
-    public void onSpeed(String url, String path, long speed) {
+    public void onStartReal(String url, String path) {
         ThreadUtils.getMainHandler().post(new Runnable() {
             @Override
             public void run() {
-                callback.onSpeed(url, path, speed);
+                callback.onStartReal(url, path);
+            }
+        });
+    }
+
+    @Override
+    public void onCodeStart(String url, String path) {
+        ThreadUtils.getMainHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                callback.onCodeStart(url, path);
+            }
+        });
+    }
+
+    @Override
+    public void onCancel(String url, String path) {
+        ThreadUtils.getMainHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                callback.onCancel(url, path);
             }
         });
     }

@@ -57,7 +57,7 @@ public class SingleTaskTestActivity extends AppCompatActivity {
                 //downloadId1 = createDownloadTask(1).start();
                 BaseDownloadTask downloadTask = createDownloadTask(1);
                 AndroidDownloader.prepareDownload(downloadTask.getUrl())
-                                //.filePath(downloadTask.getTargetFilePath())
+                                .filePath(downloadTask.getTargetFilePath())
                                 .start(new DownloadCallbackOnMainThreadWrapper(
                                         new IDownloadCallback() {
                                             @Override
@@ -71,17 +71,12 @@ public class SingleTaskTestActivity extends AppCompatActivity {
                                             }
 
                                             @Override
-                                            public void onProgress(String url, String path, long total, long alreadyReceived) {
+                                            public void onProgress(String url, String path, long total, long alreadyReceived,long speed) {
                                                 progressBar1.setMax((int) total);
                                                 progressBar1.setProgress((int) alreadyReceived);
-                                                filenameTv1.setText(path.substring(path.lastIndexOf("/")+1));
-                                            }
-
-                                            @Override
-                                            public void onSpeed(String url, String path, long speed) {
+                                                filenameTv1.setText(path);
                                                 String text = speed/1024+"KB/s";
                                                 speedTv1.setText(text);
-
                                             }
                                         }
                                 ));
@@ -179,17 +174,12 @@ public class SingleTaskTestActivity extends AppCompatActivity {
                                     }
 
                                     @Override
-                                    public void onProgress(String url, String path, long total, long alreadyReceived) {
+                                    public void onProgress(String url, String path, long total, long alreadyReceived,long speed) {
                                         progressBar4.setMax((int) total);
                                         progressBar4.setProgress((int) alreadyReceived);
-                                        detailTv4.setText(path.substring(path.lastIndexOf("/")+1));
-                                    }
-
-                                    @Override
-                                    public void onSpeed(String url, String path, long speed) {
+                                        detailTv4.setText(path);
                                         String text = speed/1024+"KB/s";
                                         speedTv4.setText(text);
-
                                     }
                                 }
                         ));

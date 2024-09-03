@@ -72,9 +72,8 @@ public interface IDownloadCallback{
 
     void onFailed(String url, String path, String code, String msg, Throwable e);
 
-    default  void onProgress(String url, String path, long total, long alreadyReceived){}
-
-    default  void onSpeed(String url, String path, long speed){}
+    default  void onProgress(String url, String path, long total, long alreadyReceived,long speed){}
+  
 }
 ```
 

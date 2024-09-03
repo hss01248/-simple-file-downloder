@@ -28,8 +28,23 @@ public interface IDownloadCallback{
 
     void onFailed(String url, String path, String code, String msg, Throwable e);
 
-    default  void onProgress(String url, String path, long total, long alreadyReceived){}
+    default  void onProgress(String url, String path, long total, long alreadyReceived,long speed){}
 
-    default  void onSpeed(String url, String path, long speed){}
+    default  void onCancel(String url,String path){}
+
+    /**
+     * 线程执行开始
+     * @param url
+     * @param path
+     */
+    default void onStartReal(String url, String path){}
+
+    /**
+     * 代码启动
+     * @param url
+     * @param path
+     */
+    default void onCodeStart(String url, String path){}
+
 }
 
