@@ -30,7 +30,8 @@ public class FileAndDirUtil {
         String saveDir = dealSaveDir(config);
         config.setSaveDir(saveDir);
 
-        String name = dealFileName(config.getUrl());
+        String name = dealFileName(config.getUrl(),config.getFileName());
+        config.setFileName(name);
 
 
         //整体文件路径太长的问题:
@@ -101,7 +102,10 @@ public class FileAndDirUtil {
         return dir.getAbsolutePath();
     }
 
-    static String dealFileName(String url) {
+    static String dealFileName(String url,String fileName) {
+         if(fileName !=null && !fileName.equals("")){
+             return fileName;
+         }
         try {
             url = URLDecoder.decode(url,"UTF-8");
         } catch (UnsupportedEncodingException e) {

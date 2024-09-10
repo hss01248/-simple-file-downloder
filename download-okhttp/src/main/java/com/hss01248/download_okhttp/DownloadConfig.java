@@ -16,6 +16,7 @@
 
 package com.hss01248.download_okhttp;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,6 +30,16 @@ public class DownloadConfig {
 
     private String url;
     private String filePath;
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    private String fileName;
     private boolean forceRedownload;
     private boolean notAcceptRanges;
 
@@ -52,6 +63,8 @@ public class DownloadConfig {
         this.filePath = filePath;
     }
 
+
+
     public void setSaveDir(String saveDir) {
         this.saveDir = saveDir;
     }
@@ -70,6 +83,9 @@ public class DownloadConfig {
     }
 
     public String getFilePath() {
+        if(filePath ==null && saveDir !=null && fileName !=null){
+            filePath = saveDir + File.separator+fileName;
+        }
         return filePath;
     }
 
@@ -123,6 +139,7 @@ public class DownloadConfig {
         tags = builder.tags;
         requestSync = builder.requestSync;
         saveDir = builder.saveDir;
+        fileName = builder.fileName;
     }
     public static Builder newBuilder() {
         return new Builder();
@@ -142,6 +159,7 @@ public class DownloadConfig {
         builder.tags = copy.getTags();
         builder.requestSync = copy.requestSync;
         builder.saveDir = copy.getSaveDir();
+        builder.fileName = copy.fileName;
         return builder;
     }
 
@@ -161,6 +179,13 @@ public class DownloadConfig {
 
         private  boolean requestSync = true;
         private String saveDir;
+
+        public Builder fileName(String fileName) {
+            this.fileName = fileName;
+            return this;
+        }
+
+        private String fileName;
 
         private Builder() {
         }
@@ -252,7 +277,7 @@ public class DownloadConfig {
         public void start(IDownloadCallback val) {
             callback = val;
             DownloadConfig build = build();
-            callback.onCodeStart(url,filePath);
+            callback.onCodeStart(url, build.getFilePath());
             // sync async
             if(build.isRequestSync()){
                 OkhttpDownloadUtil.downloadSync(build);
