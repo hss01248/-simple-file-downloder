@@ -185,9 +185,9 @@ public class OkhttpDownloadUtil {
                 }
             }
         }
-        if(!isRangeRequest){
+        /*if(!isRangeRequest){
             file.delete();
-        }
+        }*/
         Request request = builder
                 .build();
         try{
@@ -214,6 +214,25 @@ public class OkhttpDownloadUtil {
                     }
                 }
             }
+            if(file.exists() && file.length()>0 ){
+                if(!isRangeRequest){
+                    if(fileSizeAlreadyKnown !=null && fileSizeAlreadyKnown >0){
+                        if(file.length() == fileSizeAlreadyKnown){
+                            callback.onSuccess(url,file.getAbsolutePath());
+                            d("文件大小与远程一致2,"+url);
+                            runningTask.remove(url);
+                            return;
+                        }else {
+                            file.delete();
+                        }
+                    }else {
+                        file.delete();
+                    }
+                }
+            }
+
+
+
             //httpcode!=206 且响应头没有Content-Range的话,就说明还是全部文件,而不是部分文件:
 
             InputStream inputStream = response.body().byteStream();
@@ -413,5 +432,25 @@ public class OkhttpDownloadUtil {
             }
         }
         System.out.println(sb.toString());
+    }
+
+
+    public static void main(String[] args) {
+        OkhttpDownloadUtil.logEnable = true;
+        String  url = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4";
+        DownloadConfig.newBuilder()
+                .url(url)
+                .saveDir("/Users/hss/Downloads")
+                .start(new IDownloadCallback() {
+                    @Override
+                    public void onSuccess(String url, String path) {
+
+                    }
+
+                    @Override
+                    public void onFailed(String url, String path, String code, String msg, Throwable e) {
+
+                    }
+                });
     }
 }
