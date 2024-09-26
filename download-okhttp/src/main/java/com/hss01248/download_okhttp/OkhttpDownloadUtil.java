@@ -26,6 +26,10 @@ import okhttp3.Response;
  */
 public class OkhttpDownloadUtil {
 
+    public static void setClient(OkHttpClient client) {
+        OkhttpDownloadUtil.client = client;
+    }
+
     volatile static  OkHttpClient client;
 
     volatile static Set<String> runningTask = new CopyOnWriteArraySet<>();
@@ -332,9 +336,9 @@ public class OkhttpDownloadUtil {
                     .followRedirects(true)
                     .followSslRedirects(true)
                     .retryOnConnectionFailure(true)
-                    .connectTimeout(10, TimeUnit.SECONDS)
-                    .readTimeout(10,TimeUnit.SECONDS)
-                    .writeTimeout(10,TimeUnit.SECONDS)
+                    .connectTimeout(20, TimeUnit.SECONDS)
+                    .readTimeout(20,TimeUnit.SECONDS)
+                    .writeTimeout(20,TimeUnit.SECONDS)
                     .build();
         }
     }
