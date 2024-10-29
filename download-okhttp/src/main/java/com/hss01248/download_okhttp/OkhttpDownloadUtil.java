@@ -384,7 +384,7 @@ public class OkhttpDownloadUtil {
                         throw  new InterruptedException("paused or stop");
                     }
                 }
-                listener.onProgress("","",0,curSize,0);
+                listener.onProgress(url,file.getAbsolutePath(),0,curSize,0);
             }
             return true;
         } catch (IOException e) {
